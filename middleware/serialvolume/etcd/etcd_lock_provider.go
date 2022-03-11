@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	etcd "github.com/coreos/etcd/clientv3"
-	etcdsync "github.com/coreos/etcd/clientv3/concurrency"
+	etcd "go.etcd.io/etcd/client/v3"
+	etcdsync "go.etcd.io/etcd/client/v3/concurrency"
 	log "github.com/sirupsen/logrus"
 	"github.com/akutz/gosync"
 
@@ -229,7 +229,7 @@ type TryMutex struct {
 // Lock locks m. If the lock is already in use, the calling goroutine blocks
 // until the mutex is available.
 func (m *TryMutex) Lock() {
-	//log.Debug("TryMutex: lock")
+	// log.Debug("TryMutex: lock")
 	ctx := m.LockCtx
 	if ctx == nil {
 		ctx = m.ctx
@@ -249,7 +249,7 @@ func (m *TryMutex) Lock() {
 // allowed for one goroutine to lock a Mutex and then arrange for another
 // goroutine to unlock it.
 func (m *TryMutex) Unlock() {
-	//log.Debug("TryMutex: unlock")
+	// log.Debug("TryMutex: unlock")
 	ctx := m.UnlockCtx
 	if ctx == nil {
 		ctx = m.ctx
@@ -264,7 +264,7 @@ func (m *TryMutex) Unlock() {
 
 // Close closes and cleans up the underlying concurrency session.
 func (m *TryMutex) Close() error {
-	//log.Debug("TryMutex: close")
+	// log.Debug("TryMutex: close")
 	if err := m.sess.Close(); err != nil {
 		log.Errorf("TryMutex: close err: %v", err)
 		return err
