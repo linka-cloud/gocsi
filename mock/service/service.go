@@ -33,6 +33,10 @@ type Service interface {
 }
 
 type service struct {
+	csi.UnimplementedControllerServer
+	csi.UnimplementedIdentityServer
+	csi.UnimplementedNodeServer
+
 	sync.Mutex
 	nodeID   string
 	vols     []csi.Volume
