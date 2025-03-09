@@ -5,12 +5,13 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/golang/protobuf/proto"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 
@@ -221,43 +222,47 @@ func (s *interceptor) handle(
 		return nil, err
 	}
 
-	if s.opts.repValidation {
-		log.Debug("response validation enabled")
-		// Validate the response against the CSI specification.
-		if err := s.validateResponse(ctx, method, rep); err != nil {
-
-			// If an error occurred while validating the response, it is
-			// imperative the response not be discarded as it could be
-			// important to the client.
-			st, ok := status.FromError(err)
-			if !ok {
-				st = status.New(codes.Internal, err.Error())
-			}
-
-			// Add the response to the error details.
-			st, err2 := st.WithDetails(rep.(proto.Message))
-
-			// If there is a problem encoding the response into the
-			// protobuf details then err on the side of caution, log
-			// the encoding error, validation error, and return the
-			// original response.
-			if err2 != nil {
-				log.WithFields(map[string]interface{}{
-					"encErr": err2,
-					"valErr": err,
-				}).Error("failed to encode error details; " +
-					"returning invalid response")
-
-				return rep, nil
-			}
-
-			// There was no issue encoding the response, so return
-			// the gRPC status error with the error message and payload.
-			return nil, st.Err()
-		}
+	if !s.opts.repValidation {
+		return rep, nil
 	}
 
-	return rep, err
+	log.Debug("response validation enabled")
+	// Validate the response against the CSI specification.
+	if err := s.validateResponse(ctx, method, rep); err != nil {
+
+		// If an error occurred while validating the response, it is
+		// imperative the response not be discarded as it could be
+		// important to the client.
+		st, ok := status.FromError(err)
+		if !ok {
+			st = status.New(codes.Internal, err.Error())
+		}
+
+		m, ok := rep.(proto.Message)
+		if !ok {
+			return nil, st.Err()
+		}
+		p := st.Proto()
+		a, err2 := anypb.New(m)
+		// If there is a problem encoding the response into the
+		// protobuf details then err on the side of caution, log
+		// the encoding error, validation error, and return the
+		// validation error.
+		if err2 != nil {
+			log.WithFields(map[string]interface{}{
+				"encErr": err2,
+				"valErr": err,
+			}).Error("failed to encode error details; " +
+				"returning invalid response")
+
+			return nil, st.Err()
+		}
+		p.Details = append(p.Details, a)
+		// There was no issue encoding the response, so return
+		// the gRPC status error with the error message and payload.
+		return nil, status.FromProto(p).Err()
+	}
+	return rep, nil
 }
 
 type interceptorHasVolumeID interface {

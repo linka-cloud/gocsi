@@ -175,7 +175,11 @@ func (s *interceptor) rprintReqOrRep(w io.Writer, obj interface{}) {
 	printedColon := false
 	printComma := false
 	for i := 0; i < nf; i++ {
-		name := tv.Field(i).Name
+		field := tv.Field(i)
+		if !field.IsExported() {
+			continue
+		}
+		name := field.Name
 		if strings.Contains(name, "Secrets") {
 			continue
 		}

@@ -6,10 +6,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/golang/protobuf/ptypes"
-
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"golang.org/x/net/context"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -82,7 +81,7 @@ func (s *service) newSnapshot(name string, size int64) csi.Snapshot {
 		SnapshotId:     "12",
 		SourceVolumeId: "4",
 		SizeBytes:      size,
-		CreationTime:   ptypes.TimestampNow(),
+		CreationTime:   timestamppb.Now(),
 		ReadyToUse:     true,
 	}
 }
